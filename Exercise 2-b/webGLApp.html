@@ -9,8 +9,11 @@
         <script id="shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
 
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+
             void main(void) {
-                gl_Position = vec4(aVertexPosition, 1.0);
+                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
             }
         </script>
         
@@ -92,6 +95,9 @@
 
                 shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
                 gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+                shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+                shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
             }
 
 
@@ -109,6 +115,17 @@
             var triangleIsoscelesVertexPositionBuffer;
 
             function loadSceneOnGPU() {
+                triangleVertexPositionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                var vertices = [
+                     0.0, 1.0, 0.0,
+                    -1.0, -1.0, 0.0,
+                     1.0, -1.0, 0.0
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                triangleVertexPositionBuffer.itemSize = 3;
+                triangleVertexPositionBuffer.numItems = 3;
+
                 triangleIsoscelesVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
                 var verticesiso = [
@@ -128,11 +145,51 @@
             function drawScene() {
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+
+                //triangle 1
+
+                mat4.identity(mvMatrix);
+
+                mat4.translate(mvMatrix, [0.0, 1.5, -10.0]);
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
+
+                //triangle 2
+                mat4.identity(mvMatrix);
+                mat4.translate(mvMatrix, [0.0, -1.5, -10.0]);
+                mat4.rotate(mvMatrix, 3.1415 * 1, [0.0, 0.0, 1.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
 
                 //square 1
+                mat4.identity(mvMatrix);
+
+                mat4.translate(mvMatrix, [3.0, 0.0, -10.0]);
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleIsoscelesVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                sendMatricesToShader();
                 gl.drawArrays(gl.TRIANGLES, 0, triangleIsoscelesVertexPositionBuffer.numItems);
+            
+                //square enix
+                mat4.identity(mvMatrix);
+
+                mat4.translate(mvMatrix, [-3.0, 0.0, -10.0]);
+                mat4.rotate(mvMatrix, 3.1415 * 0.25, [0.0, 0.0, 1.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleIsoscelesVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                sendMatricesToShader();
+                gl.drawArrays(gl.TRIANGLES, 0, triangleIsoscelesVertexPositionBuffer.numItems);
+
             }
 
 
