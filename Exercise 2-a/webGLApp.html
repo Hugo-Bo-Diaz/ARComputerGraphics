@@ -8,11 +8,15 @@
 
         <script id="shader-vs" type="x-shader/x-vertex">
             attribute vec3 aVertexPosition;
+            attribute vec3 acolor;
 
             uniform mat4 uMVMatrix;
             uniform mat4 uPMatrix;
 
+            varying vec3 vcolor;
+
             void main(void) {
+                vcolor = acolor;
                 gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
             }
         </script>
@@ -20,8 +24,11 @@
         <script id="shader-fs" type="x-shader/x-fragment">
             precision mediump float;
 
+            varying vec3 vcolor;
+
             void main(void) {
-                gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+                gl_FragColor = vec4(vcolor, 1.0);
+                //gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
             }
         </script>
         
@@ -94,7 +101,9 @@
                 gl.useProgram(shaderProgram);
 
                 shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+                shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "acolor");
                 gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+                gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
                 shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
@@ -114,7 +123,13 @@
             var triangleVertexPositionBuffer;
             var triangleIsoscelesVertexPositionBuffer;
 
+            var c_triangle_a;
+            var c_triangle_b;
+            var c_yellow;
+
             function loadSceneOnGPU() {
+
+                //triangles
                 triangleVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 var vertices = [
@@ -139,6 +154,45 @@
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesiso), gl.STATIC_DRAW);
                 triangleIsoscelesVertexPositionBuffer.itemSize = 3;
                 triangleIsoscelesVertexPositionBuffer.numItems = 6;
+
+
+                //COLORS
+                c_triangle_a = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_triangle_a);
+                var col_a = [
+                     1.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0,                 
+                     0.0, 0.0, 1.0,                                  
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(col_a), gl.STATIC_DRAW);
+                c_triangle_a.itemSize = 3;
+                c_triangle_a.numItems = 3;
+
+                c_triangle_b = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_triangle_b);
+                var col_b = [
+                     1.0, 1.0, 0.0,
+                     0.0, 1.0, 1.0,                 
+                     1.0, 0.0, 1.0,                                 
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(col_b), gl.STATIC_DRAW);
+                c_triangle_b.itemSize = 3;
+                c_triangle_b.numItems = 3;
+
+                c_yellow = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_yellow);
+                var col_y = [
+                     1.0, 1.0, 0.0, 
+                     1.0, 1.0, 0.0, 
+                     1.0, 1.0, 0.0, 
+                     1.0, 1.0, 0.0,
+                     1.0, 1.0, 0.0,
+                     1.0, 1.0, 0.0                  
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(col_y), gl.STATIC_DRAW);
+                c_yellow.itemSize = 3;
+                c_yellow.numItems = 6;
+
             }
 
 
@@ -149,20 +203,25 @@
 
 
                 //triangle 1
-
                 mat4.identity(mvMatrix);
 
                 mat4.translate(mvMatrix, [0.0, 1.5, -10.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_triangle_a);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,c_triangle_a.itemSize, gl.FLOAT,false,0,0);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
                 sendMatricesToShader();
                 gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
 
-
                 //triangle 2
                 mat4.identity(mvMatrix);
                 mat4.translate(mvMatrix, [0.0, -1.5, -10.0]);
                 mat4.rotate(mvMatrix, 3.1415 * 1, [0.0, 0.0, 1.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_triangle_b);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,c_triangle_b.itemSize, gl.FLOAT,false,0,0);
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -174,6 +233,10 @@
                 mat4.identity(mvMatrix);
 
                 mat4.translate(mvMatrix, [3.0, 0.0, -10.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_yellow);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,c_yellow.itemSize, gl.FLOAT,false,0,0);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleIsoscelesVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
                 sendMatricesToShader();
@@ -184,6 +247,9 @@
 
                 mat4.translate(mvMatrix, [-3.0, 0.0, -10.0]);
                 mat4.rotate(mvMatrix, 3.1415 * 0.25, [0.0, 0.0, 1.0]);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_yellow);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,c_yellow.itemSize, gl.FLOAT,false,0,0);
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleIsoscelesVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
