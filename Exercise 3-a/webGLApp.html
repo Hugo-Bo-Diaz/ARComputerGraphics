@@ -10,10 +10,13 @@
             attribute vec3 aVertexPosition;
             attribute vec3 acolor;
             attribute vec2 atexcoord;
+            
             //uniform mat4 uMVMatrix;
             //uniform mat4 uPMatrix;
+
             varying vec3 vcolor;
             varying vec2 vtexcoord;
+            
             void main(void) {
                 vcolor = acolor;
                 gl_Position = vec4(aVertexPosition, 1.0);
@@ -26,18 +29,36 @@
             precision mediump float;
 
             varying vec3 vcolor;
-
             varying vec2 vtexcoord;
-
             uniform sampler2D utexture;
 
             void main(void) {
                 gl_FragColor = texture2D(utexture, vtexcoord);
+                //gl_FragColor = vec4(1.0,0.0,1.0,1.0);
             }
         </script>
         
         <script type="text/javascript">
 
+            var MyTexture;
+
+            function setTextureParams(texture){
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE, texture.image);
+                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.bindTexture(gl.TEXTURE_2D,null);
+            }
+
+            function loadTextureOnGPU(){
+                MyTexture = gl.createTexture();
+                MyTexture.image = new Image();
+                MyTexture.image.onload = function(){
+                    setTextureParams(MyTexture);
+                }
+                MyTexture.image.src = "marvel.png";
+            }    
             var gl;
             function initGL(canvas) {
                 try {
@@ -175,7 +196,7 @@
                 c_yellow.numItems = 6;
 
                 texcoordsBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER,texcoordsBuffer);
+                gl.bindBuffer(gl.ARRAY_BUFFER, texcoordsBuffer);
                 var tex=[
                     0.0, 0.0,
                     0.0, 1.0,
@@ -187,6 +208,7 @@
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tex), gl.STATIC_DRAW);
                 texcoordsBuffer.itemSize = 2;
                 texcoordsBuffer.numItems = 6;
+                gl.bindBuffer(gl.ARRAY_BUFFER, null);
             }
 
 
@@ -205,8 +227,11 @@
                 gl.bindTexture(gl.TEXTURE_2D,MyTexture);
                 gl.uniform1i(shaderProgram.sampler2D,0);
 
+                gl.bindBuffer(gl.ARRAY_BUFFER, c_yellow);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,c_yellow.itemSize, gl.FLOAT,false,0,0);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, texcoordsBuffer);
-                gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, texcoordsBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, 2, gl.FLOAT, false, 0, 0);
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleIsoscelesVertexPositionBuffer);
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleIsoscelesVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -239,25 +264,7 @@
                 drawScene();
             }
             
-            var MyTexture;
 
-            function setTextureParams(texture){
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-                gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE, texture.image);
-                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.bindTexture(gl.TEXTURE_2D,null);
-            }
-
-            function loadTextureOnGPU(){
-                MyTexture = gl.createTexture();
-                MyTexture.image = new Image();
-                MyTexture.image.onload = function(){
-                    setTextureParams(MyTexture);
-                }
-                MyTexture.image.src = "marvel.png";
-            }
 
         </script>
 
