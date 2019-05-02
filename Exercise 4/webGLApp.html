@@ -42,8 +42,12 @@
 
             var MyTexture;
 
-            var cam_angle_x = 180;
-            var cam_angle_y = 180;
+            var cam_angle_x = 0;
+            var cam_angle_y = 0;
+
+            var position_x = 0;
+            var position_y = 0;
+            var position_z = 0;
 
             function setTextureParams(texture){
                 gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -66,6 +70,23 @@
             var currentlyPressedKeys = {};
             var mouseDown = false;
 
+            function UpdateMatrices(){
+
+                var newRotationMatrix = mat4.create();
+                mat4.identity(newRotationMatrix);
+                mat4.rotate(newRotationMatrix, (cam_angle_x),
+                            [0,1,0]);
+                
+                mat4.rotate(newRotationMatrix, (cam_angle_y),
+                            [1,0,0]);
+
+                mouseRotationMatrix = newRotationMatrix;
+                mat4.translate(mouseRotationMatrix,[position_z,position_y,position_x]);
+                
+                //console.log(cam_angle_x);
+
+
+            }
 
             function handleKeyDown(event){
                 currentlyPressedKeys[event.keyCode] = true;
@@ -80,6 +101,35 @@
                 // (>'.')> <('.'<) (>'.')> <('.'<) (>'.')>
                 // <('.'<) (>'.')> <('.'<) (>'.')> <('.'<)
                 // (>'.')> <('.'<) (>'.')> <('.'<) (>'.')>
+
+                var distance = 0.02;
+                var forward_x = distance* Math.cos(Math.PI / 180)*(cam_angle_x);
+                var forward_z = distance* Math.sin(Math.PI / 180)*(cam_angle_x);
+                if (currentlyPressedKeys[87]==true)//W
+                {
+                    position_x += distance * Math.cos((-cam_angle_x));
+                    position_z += distance * Math.sin((-cam_angle_x));
+                }
+
+                if (currentlyPressedKeys[65]==true)//A
+                {
+                    position_x += distance* Math.cos((-cam_angle_x+90));
+                    position_z += distance* Math.sin((-cam_angle_x+90));
+
+                }
+
+                if (currentlyPressedKeys[68]==true)//D
+                {
+                    position_x += distance* Math.cos((-cam_angle_x-90));
+                    position_z += distance* Math.sin((-cam_angle_x-90));
+
+                }
+
+                if (currentlyPressedKeys[83]==true)//S
+                {
+                    position_x -= distance* Math.cos((-cam_angle_x));
+                    position_z -= distance* Math.sin((-cam_angle_x));
+                }
             }
             
             var mouseRotationMatrix = mat4.create();
@@ -97,19 +147,12 @@
                 var deltaX = newX - lastMouseX;
                 var deltaY = newY - lastmouseY;
 
-                cam_angle_x+=deltaX;
-                cam_angle_y+=deltaY;
+                cam_angle_x +=deltaX*(Math.PI / 180);
+                cam_angle_y -=deltaY*(Math.PI / 180);
 
-                var newRotationMatrix = mat4.create();
-                mat4.identity(newRotationMatrix);
-                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(cam_angle_x/10),
-                            [0,1,0]);
-                
-                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(cam_angle_y/10),
-                            [1,0,0]);
-
-                mouseRotationMatrix = newRotationMatrix;
+                console.log(cam_angle_x);
                 }
+
 
                 lastMouseX = event.clientX;
                 lastmouseY = event.clientY;
@@ -251,7 +294,7 @@
                 triangleVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 var vertices = [
-                     0.0, 1.0, 0.0,
+                     0.0,  1.0, 0.0,
                     -1.0, -1.0, 0.0,
                      1.0, -1.0, 0.0
                 ];
@@ -398,6 +441,7 @@
 
             function renderingLoop(){
                 requestAnimFrame(renderingLoop);
+                UpdateMatrices();
                 handleKeys();
                 drawScene();
             }
