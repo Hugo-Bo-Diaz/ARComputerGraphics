@@ -42,6 +42,9 @@
 
             var MyTexture;
 
+            var cam_angle_x = 180;
+            var cam_angle_y = 180;
+
             function setTextureParams(texture){
                 gl.bindTexture(gl.TEXTURE_2D, texture);
                 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -94,15 +97,18 @@
                 var deltaX = newX - lastMouseX;
                 var deltaY = newY - lastmouseY;
 
+                cam_angle_x+=deltaX;
+                cam_angle_y+=deltaY;
+
                 var newRotationMatrix = mat4.create();
                 mat4.identity(newRotationMatrix);
-                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(deltaX/10),
+                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(cam_angle_x/10),
                             [0,1,0]);
                 
-                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(deltaY/10),
+                mat4.rotate(newRotationMatrix, (Math.PI / 180)*(cam_angle_y/10),
                             [1,0,0]);
 
-                mat4.multiply(newRotationMatrix,mouseRotationMatrix,mouseRotationMatrix);
+                mouseRotationMatrix = newRotationMatrix;
                 }
 
                 lastMouseX = event.clientX;
@@ -342,6 +348,8 @@
                 
                 //triangle 1
                 mat4.identity(mvMatrix);
+                mat4.multiply(mvMatrix,mouseRotationMatrix);
+
 
                 mat4.translate(mvMatrix, [1.5, 0.0, -10.0]);
                 gl.activeTexture(gl.TEXTURE0);
