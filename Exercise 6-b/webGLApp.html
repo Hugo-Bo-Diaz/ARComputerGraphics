@@ -34,9 +34,9 @@
                 gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
                 //vtexcoord = atexcoord;
 
-                //vec3 N = uNMatrix*normalize(aVertexNormal);
-                //float dotNL = max(dot(N, L),0.0);
-                //shadedColor = Ka*Ia+Kd*Ip*dotNL;
+                vec3 N = uNMatrix*normalize(aVertexNormal);
+                float dotNL = max(dot(N, L),0.0);
+                shadedColor = Ka*Ia+Kd*Ip*dotNL;
 
                 shadedColor = aVertexNormal*0.5+vec3(0.5);
             }
