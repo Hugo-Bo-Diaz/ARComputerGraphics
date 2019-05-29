@@ -38,7 +38,7 @@
                 float dotNL = max(dot(N, L),0.0);
                 shadedColor = Ka*Ia+Kd*Ip*dotNL;
 
-                shadedColor = aVertexNormal*0.5+vec3(0.5);
+                //shadedColor = aVertexNormal*0.5+vec3(0.5);
             }
         </script>
         
@@ -351,6 +351,15 @@
 
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
                 shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+                shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+
+
+                shaderProgram.L_Uniform = gl.getUniformLocation(shaderProgram, "L");
+                shaderProgram.Ia_Uniform = gl.getUniformLocation(shaderProgram, "Ia");
+                shaderProgram.Ip_Uniform = gl.getUniformLocation(shaderProgram, "Ip");
+
+                shaderProgram.Ka_Uniform = gl.getUniformLocation(shaderProgram, "Ka");
+                shaderProgram.Kd_Uniform = gl.getUniformLocation(shaderProgram, "Kd");
                 //shaderProgram.sampler2D = gl.getUniformLocation(shaderProgram, "utexture");
 
             }
@@ -363,10 +372,10 @@
                 gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
                 gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
                 
-                /*var normalMatrix = mat3.create();
+                var normalMatrix = mat3.create();
                 mat4.toInverseMat3(mvMatrix, normalMatrix);
                 mat3.transpose(normalMatrix);
-                gl.uniformMatrix3fv(shaderProgram.nMatrixUniform,false,normalMatrix);*/
+                gl.uniformMatrix3fv(shaderProgram.nMatrixUniform,false,normalMatrix);
             }
 
 
