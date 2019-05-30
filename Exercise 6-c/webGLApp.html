@@ -85,7 +85,7 @@
             }
 
             function loadModel(file,transform,r,g,b){
-                var request= XMLHttpRequest();
+                var request= new XMLHttpRequest();
                 request.open("GET",file);
                 request.onreadystatechange = function(){
                     if (request.readyState == 4){
@@ -146,9 +146,10 @@
             }
 
             var currentlyPressedKeys = {};
+            var mouseKeys = {};
             var mouseDown = false;
 
-            function UpdateMatrices(){
+            /*function UpdateMatrices(){
 
                 var newRotationMatrix = mat4.create();
                 mat4.identity(newRotationMatrix);
@@ -164,7 +165,7 @@
                 //console.log(cam_angle_x);
 
 
-            }
+            }*/
 
             function handleKeyDown(event){
                 currentlyPressedKeys[event.keyCode] = true;
@@ -174,13 +175,16 @@
                 currentlyPressedKeys[event.keyCode] = false;
             }
 
+            var dist = null;
+            var travel = null;
+
             function handleKeys(){
                 // <('.'<) (>'.')> <('.'<) (>'.')> <('.'<)
                 // (>'.')> <('.'<) (>'.')> <('.'<) (>'.')>
                 // <('.'<) (>'.')> <('.'<) (>'.')> <('.'<)
                 // (>'.')> <('.'<) (>'.')> <('.'<) (>'.')>
 
-                var distance = 0.02;
+                /*var distance = 0.02;
                 var forward_x = distance* Math.cos(Math.PI / 180)*(cam_angle_x);
                 var forward_z = distance* Math.sin(Math.PI / 180)*(cam_angle_x);
                 if (currentlyPressedKeys[87]==true)//W
@@ -207,39 +211,99 @@
                 {
                     position_x -= distance* Math.cos((-cam_angle_x));
                     position_z -= distance* Math.sin((-cam_angle_x));
+                }*/
+                
+                if(currentlyPressedKeys[37]) {
+                    dist -= 0.1*Math.cos(cam_angle_x+deg2Rad(-90));
+                    travel+=0.1*Math.sin(cam_angle_x+deg2Rad(-90));
                 }
+
+
+                if(currentlyPressedKeys[38]) {   
+                    dist -= 0.1*Math.cos(cam_angle_x);
+                    travel+=0.1*Math.sin(cam_angle_x);
+                    console.log(dist);
+                }
+
+
+                //Right Cursor Key
+                if(currentlyPressedKeys[39]) {
+
+                    dist -= 0.1*Math.cos(cam_angle_x+deg2Rad(90));
+                    travel+=0.1*Math.sin(cam_angle_x+deg2Rad(90));
+                }
+                //Down Cursor Key
+                if(currentlyPressedKeys[40]) { 
+                    dist -= 0.1*Math.cos(cam_angle_x+deg2Rad(180));
+                    travel+=0.1*Math.sin(cam_angle_x+deg2Rad(180));
+                    
+                }   
+                if(currentlyPressedKeys[82])
+                {
+                    mat4.identity(mouseRotationMatrix);
+                    cam_angle_x = 0;
+                    cam_angle_y = 0;
+                    dist = 0;
+                    travel = 0;
+                }
+
+            }
+
+            function deg2Rad(angle) {
+                return angle * (Math.PI / 180);
             }
             
             var mouseRotationMatrix = mat4.create();
             mat4.identity(mouseRotationMatrix);
 
-            var lastMouseX = 100;
-            var lastmouseY = 100;
+            var lastMX = null;
+            var lastMY = null;
 
             function handleMouseMove(event){
 
-                if (mouseDown){                
-                
                 var newX = event.clientX;
                 var newY = event.clientY;
-                var deltaX = newX - lastMouseX;
-                var deltaY = newY - lastmouseY;
+                var deltaX = newX - lastMX;
+                var deltaY = newY - lastMY;
+                // Left Button
+                if(mouseKeys[0]) {
+                    var newRotationMatrix = mat4.create();
+                    /*mat4.identity(newRotationMatrix);
+                    mat4.rotateY(newRotationMatrix, deg2Rad(deltaX / 10));
+                    mat4.rotateX(newRotationMatrix, deg2Rad(deltaY / 10));
+                
+                    mat4.multiply(newRotationMatrix, mouseRotationMatrix, mouseRotationMatrix);
+                    */
+                    
+                    cam_angle_x+= deg2Rad(deltaX/10);
+                    cam_angle_y+= deg2Rad(deltaY/10);
+                    
+                    mat4.identity(mouseRotationMatrix);
+                    mat4.rotateX(mouseRotationMatrix,cam_angle_y);
+                    mat4.rotateY(mouseRotationMatrix,cam_angle_x);
 
-                cam_angle_x +=deltaX*(Math.PI / 180);
-                cam_angle_y -=deltaY*(Math.PI / 180);
-
-                console.log(cam_angle_x);
+                    console.log(deltaX, deltaY);
                 }
-
-
-                lastMouseX = event.clientX;
-                lastmouseY = event.clientY;
+                // Mid Button
+                /*if(mouseKeys[1]) {
+                    var newTransMatrix = mat4.create();
+                    mat4.identity(newTransMatrix);
+                    mat4.translate(newTransMatrix, [deltaX /108, -deltaY/108,0]);
+                    mat4.multiply(newTransMatrix, mouseRotationMatrix, mouseRotationMatrix);
+                }*/
+                // Right Button
+                if(mouseKeys[2]) {                    
+                }
+                lastMX = newX;
+                lastMY = newY;
 
                 
             }
             
             function handleMouseUp(event){
                 mouseDown = false;
+
+                mouseKeys[event.button]=false;
 
                 if (event.button == 0)
                 {
@@ -249,6 +313,8 @@
 
             function handleMouseDown(event){
                 mouseDown = true;
+
+                mouseKeys[event.button]=true;
 
                 if (event.button == 0)//left click
                 {
@@ -412,7 +478,7 @@
             
 
 
-                mat4.translate(mvMatrix, [-1.5, 0.0, -10.0]);
+
 
                 for(var i = 0; i< scene.length ;++i){
                     if (scene[i].modelVertexPositionBuffer)
@@ -424,8 +490,17 @@
 
                         mat4.identity(mvMatrix);
 
-                        mat4.multiply(mvMatrix,scene[i].transform);
                         mat4.multiply(mvMatrix,mouseRotationMatrix);
+                        
+                        var actual_x = -travel;
+                        var actual_z = -dist;
+
+                        var mvmnt_x = 
+
+                        mat4.translate(mvMatrix, [-travel, 0.0, -dist]);
+
+                        mat4.multiply(mvMatrix,scene[i].transform);
+
 
                         gl.bindBuffer(gl.ARRAY_BUFFER,scene[i].modelVertexNormalBuffer);
                         gl.vertexAttribPointer(shaderProgram.vertexNormalsAttribute,
@@ -456,14 +531,15 @@
                 trans1 = mat4.create();
 
                 mat4.identity(trans1);
-                mat4.translate(trans1,[-1.0, 0.0, -10.0]);
+                mat4.translate(trans1,[-1.0, -0.38, -10.0]);
+                mat4.rotateX(trans1,-Math.PI/2)
                 loadModel("models/Laptop.json",trans1,0.0,0.0,1.0);
 
                 trans2 = mat4.create();
 
-                mat4.identity(trans2);
-                mat4.scale(trans2,[1,1,1]);
-                mat4.translate(trans2,[1.0, 0.0, -100.0]);
+                mat4.identity(trans2);                
+                mat4.translate(trans2,[1.0, 0.0, -10.0]);
+                mat4.scale(trans2,[0.05,0.05,0.05]);
                 loadModel("models/Teapot.json",trans2,0.7,0.3,0.0);
 
                 
@@ -488,7 +564,6 @@
 
             function renderingLoop(){
                 requestAnimFrame(renderingLoop);
-                UpdateMatrices();
                 handleKeys();
                 drawScene();
             }
