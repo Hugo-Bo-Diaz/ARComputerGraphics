@@ -71,6 +71,8 @@
                 vec3 R = reflect(-L,N);
                 float RdotV = pow(max(dot(R,V),0.0),shininess);
 
+                vec3 shadedColor = (Ka * Ia + Kd * Id * NdotL + Ks * Is * RdotV);
+
                 vec3 positionTextureLightspace = 
                                 0.5 * positionProjectedLightSpace.xyz /
                                     positionProjectedLightSpace.w + vec3(0.5);
@@ -79,14 +81,14 @@
                     texture2D(lightDepth, 
                     positionTextureLightspace.xy));
 
-                float lightFactor = 0.0;
+                float lightFactor = 0.1;
                 if(depthFromLightTexture + 0.001 > positionTextureLightspace.z){
                     lightFactor = 1.0;
                 }
 
-                vec3 shadedColor = (Ka * Ia + Kd * Id * NdotL + Ks * Is * RdotV)* lightFactor;
 
-                gl_FragColor = vec4(shadedColor,1.0);
+
+                gl_FragColor = vec4(shadedColor*lightFactor,1.0);
 
             }
         </script>
@@ -129,6 +131,7 @@
 
             void main(void)
             {
+                
                 gl_FragColor = encodeFloat(gl_FragCoord.z);
             }
             
@@ -141,27 +144,9 @@
             var cam_angle_x = 0;
             var cam_angle_y = 0;
 
-            var position_x = 0;
             var position_y = 0;
-            var position_z = 0;
-
-            function setTextureParams(texture){
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-                gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE, texture.image);
-                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.bindTexture(gl.TEXTURE_2D,null);
-            }
-
-            function loadTextureOnGPU(){
-                MyTexture = gl.createTexture();
-                MyTexture.image = new Image();
-                MyTexture.image.onload = function(){
-                    setTextureParams(MyTexture);
-                }
-                MyTexture.image.src = "marvel.png";
-            }
+            var pan_x = 0;
+            var pan_y = 0;
 
             function loadModel(file,transform,r,g,b){
                 var request= new XMLHttpRequest();
@@ -242,24 +227,18 @@
                 gl.bindTexture(gl.TEXTURE_2D, rttTexture);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-                                rttFramebuffer.width,rttFramebuffer.height,
-                                0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
                 
                 var renderbuffer = gl.createRenderbuffer();
                 gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-                gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16,
-                                        rttFramebuffer.width,rttFramebuffer.height);
+                gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width,rttFramebuffer.height);
 
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-                                        gl.TEXTURE_2D, rttTexture, 0);
-                gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT,
-                                            gl.RENDERBUFFER, renderbuffer);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
+                gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
 
                 gl.bindTexture(gl.TEXTURE_2D, null);
                 gl.bindRenderbuffer(gl.RENDERBUFFER, null);
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
 
 
             }
@@ -289,7 +268,6 @@
                 if(currentlyPressedKeys[87]) {   
                     dist -= 0.1*Math.cos(cam_angle_x);
                     travel+=0.1*Math.sin(cam_angle_x);
-                    console.log(dist);
                 }
 
                 //Right Cursor Key
@@ -312,7 +290,19 @@
                     cam_angle_x = 0;
                     cam_angle_y = 0;
                     dist = 0;
+                    pan_x = 0;
+                    pan_y = 0;
                     travel = 0;
+                }
+
+                if(currentlyPressedKeys[88])
+                {
+                    position_y+=0.1;
+                }
+
+                if(currentlyPressedKeys[90])
+                {
+                    position_y-=0.1;
                 }
 
             }
@@ -345,25 +335,33 @@
                     
                     cam_angle_x+= deg2Rad(deltaX/10);
                     cam_angle_y+= deg2Rad(deltaY/10);
-                    
-                    mat4.identity(mouseRotationMatrix);
-                    mat4.rotateX(mouseRotationMatrix,cam_angle_y);
-                    mat4.rotateY(mouseRotationMatrix,cam_angle_x);
 
-                    console.log(deltaX, deltaY);
                 }
                 // Mid Button
-                /*if(mouseKeys[1]) {
-                    var newTransMatrix = mat4.create();
-                    mat4.identity(newTransMatrix);
-                    mat4.translate(newTransMatrix, [deltaX /108, -deltaY/108,0]);
-                    mat4.multiply(newTransMatrix, mouseRotationMatrix, mouseRotationMatrix);
-                }*/
+                if(mouseKeys[1]) {
+
+                    //mat4.identity(newTransMatrix);
+                    //mat4.translate(newTransMatrix, [deltaX /108, -deltaY/108,0]);
+                    //mat4.multiply(newTransMatrix, mouseRotationMatrix, mouseRotationMatrix);
+
+                    pan_x -= deltaX/108;
+                    pan_y += deltaY/108; 
+                }
                 // Right Button
                 if(mouseKeys[2]) {                    
                 }
                 lastMX = newX;
                 lastMY = newY;
+
+                                    
+                mat4.identity(mouseRotationMatrix);
+                mat4.rotateX(mouseRotationMatrix,cam_angle_y);
+                mat4.rotateY(mouseRotationMatrix,cam_angle_x);
+                var newTransMatrix = mat4.create();
+                mat4.identity(newTransMatrix);
+                mat4.translate(newTransMatrix, [pan_x,pan_y,0]);
+                mat4.multiply(newTransMatrix, mouseRotationMatrix, mouseRotationMatrix);
+
 
                 
             }
@@ -403,6 +401,21 @@
                     throw "Invalid popmatrix";
                 }
                 mvMatrix = mvMatrixStack.pop();
+            }
+            
+            var mvLightMatrixStack = [];
+
+            function mvPushLightMatrix() {
+                var copy = mat4.create();
+                mat4.set(lightmvMatrix, copy);
+                mvLightMatrixStack.push(copy);
+            }
+
+            function mvPopLightMatrix() {
+                if (mvLightMatrixStack.length ==0){
+                    throw "Invalid popmatrix";
+                }
+                lightmvMatrix = mvLightMatrixStack.pop();
             }
 
 
@@ -456,6 +469,7 @@
 
 
             var shaderProgram;
+            var programLight;
 
             function initShaders() {
                 var fragmentShader = getShader("camera-fs");
@@ -477,16 +491,21 @@
                 gl.attachShader(programLight, lightvertexShader);
                 gl.attachShader(programLight, lightfragmentShader);
                 gl.linkProgram(programLight);
+                
+                gl.useProgram(programLight);
+
+                programLight.vertexPositionAttribute = gl.getAttribLocation(programLight, "aVertexPosition");
+
+                programLight.modelViewMatrixLight_Uniform = gl.getUniformLocation(programLight, "modelViewMatrixLight");
+                programLight.projectionMatrixLight_Uniform = gl.getUniformLocation(programLight, "projectionMatrixLight");
 
                 gl.useProgram(shaderProgram);
 
+                shaderProgram.modelViewMatrixLight_Uniform = gl.getUniformLocation(shaderProgram, "modelViewMatrixLight");
+                shaderProgram.projectionMatrixLight_Uniform = gl.getUniformLocation(shaderProgram, "projectionMatrixLight");
+
                 shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
                 shaderProgram.vertexNormalsAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-
-                //shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "acolor");
-                //shaderProgram.vertexTextureAttribute = gl.getAttribLocation(shaderProgram,"atexcoord");
-                gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-                gl.enableVertexAttribArray(shaderProgram.vertexNormalsAttribute);
 
 
                 shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
@@ -503,9 +522,6 @@
                 shaderProgram.Ka_Uniform = gl.getUniformLocation(shaderProgram, "Ka");
                 shaderProgram.Kd_Uniform = gl.getUniformLocation(shaderProgram, "Kd");
                 shaderProgram.Ks_Uniform = gl.getUniformLocation(shaderProgram, "Ks");
-
-                shaderProgram.modelViewMatrixLight_Uniform = gl.getUniformLocation(shaderProgram, "modelViewMatrixLight");
-                shaderProgram.projectionMatrixLight_Uniform = gl.getUniformLocation(shaderProgram, "projectionMatrixLight");
                 
                 shaderProgram.sampler2D = gl.getUniformLocation(shaderProgram, "lightDepth");
 
@@ -523,22 +539,83 @@
                 mat4.toInverseMat3(mvMatrix, normalMatrix);
                 mat3.transpose(normalMatrix);
                 gl.uniformMatrix3fv(shaderProgram.nMatrixUniform,false,normalMatrix);
+
+
+                gl.uniformMatrix4fv(shaderProgram.modelViewMatrixLight_Uniform, false, lightmvMatrix);
+                gl.uniformMatrix4fv(shaderProgram.projectionMatrixLight_Uniform, false, lightpMatrix);
             }
 
+            function sendLightMatricesToShader(){
+                
+                gl.uniformMatrix4fv(programLight.modelViewMatrixLight_Uniform, false, lightmvMatrix);
+                gl.uniformMatrix4fv(programLight.projectionMatrixLight_Uniform, false, lightpMatrix);
+            }
+
+            var lightpMatrix = mat4.create();
+            var lightmvMatrix = mat4.create();
+
+            function ortho(left, right, bottom, top, near, far) {
+                    return [
+                        2 / (right - left), 0, 0, 0,
+                        0, 2 / (top - bottom), 0, 0,
+                        0, 0, -1 / (far - near), 0,
+                        (right + left) / (left - right),
+                        (top + bottom) / (bottom - top),
+                        -near / (near - far),
+                        1,
+                ];
+            }
+            
 
             function drawSceneFromLight()
             {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
-                gl.viewport(0,0,rttFramebuffer.width, rttFramebuffer.height);
                 gl.clear(gl.COLOR_BUFFER_BIT, gl.DEPTH_BUFFER_BIT);
+                gl.viewport(0,0,rttFramebuffer.width, rttFramebuffer.height);
 
                 gl.useProgram(programLight);
                 gl.enableVertexAttribArray(programLight.vertexPositionAttribute);
+                
+                //mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, lightpMatrix);
+                //lightpMatrix = ortho(-100,100,-100,100,0.05,1000);
+                lightpMatrix = mat4.ortho(-10.0, 10.0, -10.0, 10.0, 0.05, 30);
 
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D,rttTexture);
-                gl.uniform1i(programLight.sampler2D,0);
+                //lightpMatrix = ortho(-5.0, 5.0, -5.0, 5.0, 0.0, 300);
+
+
+                mat4.identity(lightmvMatrix);
+
+                //mat4.translate(lightmvMatrix,[-travel, 0, dist]);
+                
+                  
+                mat4.translate(lightmvMatrix,[-travel,0 ,dist]);
+                console.log(travel,dist);
+                mat4.translate(lightmvMatrix,[-6,0,5]);
+                mat4.translate(lightmvMatrix,[0,0,-10]);
+                mat4.rotateX(lightmvMatrix, deg2Rad(90));
+
+                
+                for(var i = 0; i< scene.length ;++i){
+                    //mat4.translate(lightmvMatrix,[-travel*3, dist*3,0]);
+                    mvPushLightMatrix();
+                    mat4.multiply(lightmvMatrix, scene[i].transform);  
+
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER,scene[i].modelVertexPositionBuffer);
+                    gl.vertexAttribPointer(programLight.vertexPositionAttribute,
+                                    scene[i].modelVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,scene[i].modelVertexIndexBuffer);
+
+                    sendLightMatricesToShader();
+
+                    gl.drawElements(gl.TRIANGLES, scene[i].modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+                    mvPopLightMatrix();
+                    
+                };
+
+                
 
                 gl.disableVertexAttribArray(programLight.vertexPositionAttribute);
 
@@ -547,30 +624,43 @@
 
 
             function drawScene() {
+
+                gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+                gl.enableVertexAttribArray(shaderProgram.vertexNormalsAttribute);
+
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+                mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0, pMatrix);
+
+                mat4.identity(mvMatrix);
+                
+                mat4.multiply(mvMatrix,mouseRotationMatrix);
+
+                mat4.translate(mvMatrix, [-travel, position_y, -dist]);
 
                 gl.useProgram(shaderProgram);
 
                 //light direction
-                var lightingDirection = [0.0,1.0,0.5];
+                /*var lightingDirection = [0.0,1.0,0.5];
                 var normalized_L = vec3.create();
                 vec3.normalize(lightingDirection,normalized_L);
                 gl.uniform3fv(shaderProgram.L_Uniform,normalized_L);
-
+*/
                 //light intensities
                 gl.uniform3f(shaderProgram.Ia_Uniform,0.5,0.5,0.5);
                 gl.uniform3f(shaderProgram.Id_Uniform,0.5,0.5,0.5);
                 gl.uniform3f(shaderProgram.Is_Uniform,0.5,0.5,0.5);
 
                 //light properties Ka and Kd
-                gl.uniform3f(shaderProgram.Ka_Uniform,1.0,1.0,1.0);
-                gl.uniform3f(shaderProgram.Kd_Uniform,1.0,1.0,1.0);
+                //gl.uniform3f(shaderProgram.Ka_Uniform,1.0,1.0,1.0);
+                //gl.uniform3f(shaderProgram.Kd_Uniform,1.0,1.0,1.0);
                 gl.uniform3f(shaderProgram.Ks_Uniform,0.5,0.5,0.5);
 
-                gl.uniform1f(shaderProgram.materialShininess,1)
+                gl.uniform1f(shaderProgram.materialShininess,100);
 
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D,rttTexture);
+                gl.uniform1i(shaderProgram.sampler2D,0);
 
                 for(var i = 0; i< scene.length ;++i){
                     if (scene[i].modelVertexPositionBuffer)
@@ -578,21 +668,13 @@
 
                         gl.uniform3f(shaderProgram.Ka_Uniform,scene[i].r,scene[i].g,scene[i].b);
                         gl.uniform3f(shaderProgram.Kd_Uniform,scene[i].r,scene[i].g,scene[i].b);
-                        
 
-                        mat4.identity(mvMatrix);
 
-                        mat4.multiply(mvMatrix,mouseRotationMatrix);
-                        
-                        var actual_x = -travel;
-                        var actual_z = -dist;
-
-                        var mvmnt_x = 
-
-                        mat4.translate(mvMatrix, [-travel, 0.0, -dist]);
-
+                        mvPushMatrix();                        
+                        mvPushLightMatrix();
                         mat4.multiply(mvMatrix,scene[i].transform);
-
+                        mat4.multiply(lightmvMatrix,scene[i].transform);
+                        
 
                         gl.bindBuffer(gl.ARRAY_BUFFER,scene[i].modelVertexNormalBuffer);
                         gl.vertexAttribPointer(shaderProgram.vertexNormalsAttribute,
@@ -605,8 +687,14 @@
                         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,scene[i].modelVertexIndexBuffer);
                         sendMatricesToShader();
                         gl.drawElements(gl.TRIANGLES, scene[i].modelVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+                        mvPopMatrix();
+                        mvPopLightMatrix();
                     }
                 };
+
+                gl.disableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+                gl.disableVertexAttribArray(shaderProgram.vertexNormalsAttribute);
 
             }
 
@@ -623,25 +711,29 @@
                 trans1 = mat4.create();
 
                 mat4.identity(trans1);
-                mat4.translate(trans1,[-1.0, -0.38, -10.0]);
-                mat4.rotateX(trans1,-Math.PI/2)
+                mat4.translate(trans1,[-1.0, -0.38, 0.0]);
+                mat4.rotateX(trans1,-Math.PI/2);
                 loadModel("models/Laptop.json",trans1,0.0,0.0,1.0);
 
                 trans2 = mat4.create();
 
                 mat4.identity(trans2);                
-                mat4.translate(trans2,[1.0, 0.0, -10.0]);
+                mat4.translate(trans2,[1.0, 0.0, 0.0]);
                 mat4.scale(trans2,[0.05,0.05,0.05]);
                 loadModel("models/Teapot.json",trans2,0.7,0.3,0.0);
 
+                trans3 = mat4.create();
+
+                mat4.identity(trans3);
+                mat4.translate(trans3,[0.0,-0.5,0.0]);
+                //mat4.scale(trans3,[100,100,100]);                
+                loadModel("models/Plane.json",trans3,0.6,0.6,0.6);
                 
                 //loadSceneOnGPU();
 
                 //loadTextureOnGPU();
 
                 initTextureFrameBuffer();
-
-
                 
                 document.onkeydown = handleKeyDown;
                 document.onkeyup = handleKeyUp;

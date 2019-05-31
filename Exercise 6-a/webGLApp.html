@@ -89,7 +89,7 @@
             }
 
             function loadModel(file,transform){
-                var request= XMLHttpRequest();
+                var request=  new XMLHttpRequest();
                 request.open("GET",file);
                 request.onreadystatechange = function(){
                     if (request.readyState == 4){
